@@ -409,7 +409,7 @@ function showReport(report) {
   });
 }
 
-// ── Claude API通信（SSE） ────────────────────────────────
+// ── Claude API通信 ───────────────────────────────────────
 async function sendToAI(userText) {
   if (isStreaming) return;
   isStreaming = true;
@@ -418,9 +418,6 @@ async function sendToAI(userText) {
   addTyping();
   document.getElementById("sendBtn").disabled = true;
 
-  let fullText = "";
-  const bubble = document.createElement("div");
-
   try {
     const resp = await fetch("/api/chat", {
       method: "POST",
@@ -428,41 +425,21 @@ async function sendToAI(userText) {
       body: JSON.stringify({ messages }),
     });
 
+    const result = await resp.json();
     removeTyping();
-    const wrap = document.createElement("div");
-    wrap.className = "message ai";
-    wrap.innerHTML = `<div class="avatar">🤖</div>`;
-    bubble.className = "bubble";
-    wrap.appendChild(bubble);
-    document.getElementById("messages").appendChild(wrap);
 
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split("\n");
-      buf = lines.pop();
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const payload = line.slice(6);
-        if (payload === "[DONE]") continue;
-        try {
-          const obj = JSON.parse(payload);
-          if (obj.text) {
-            fullText += obj.text;
-            bubble.innerHTML = escHtml(stripJson(fullText));
-            scrollBottom();
-          }
-        } catch {}
-      }
+    if (result.error) {
+      addMessage("ai", "⚠️ エラー: " + result.error);
+      return;
     }
 
-    // JSON抽出・表示
+    const fullText = result.text || "";
+
+    // JSON部分を除いて表示
+    const displayText = stripJson(fullText);
+    if (displayText) addMessage("ai", displayText);
+
+    // 報告書JSON抽出・プレビュー表示
     const report = extractReport(fullText);
     if (report) showReport(report);
 
