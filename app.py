@@ -153,30 +153,20 @@ def index():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    """Claude とストリーミング通信する SSE エンドポイント"""
+    """Claude にメッセージを送り、返答を返す"""
     data = request.get_json()
     messages = data.get("messages", [])
 
-    def generate():
-        try:
-            with client.messages.stream(
-                model="claude-sonnet-4-6",
-                max_tokens=3000,
-                system=SYSTEM_PROMPT,
-                messages=messages,
-            ) as stream:
-                for text in stream.text_stream:
-                    yield f"data: {json.dumps({'text': text}, ensure_ascii=False)}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
-        finally:
-            yield "data: [DONE]\n\n"
-
-    return Response(
-        generate(),
-        content_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            system=SYSTEM_PROMPT,
+            messages=messages,
+        )
+        return jsonify({"text": response.content[0].text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/save", methods=["POST"])
