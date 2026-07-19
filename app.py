@@ -6,6 +6,7 @@ import anthropic
 import requests
 
 app = Flask(__name__)
+app.json.ensure_ascii = False  # 日本語をそのまま返す
 
 # ── 設定（環境変数から取得） ─────────────────────────────
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
