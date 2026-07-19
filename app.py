@@ -1,4 +1,5 @@
 import os
+import traceback
 import json
 from datetime import date
 from flask import Flask, render_template, request, jsonify, Response
@@ -167,7 +168,7 @@ def chat():
         )
         return jsonify({"text": response.content[0].text})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
 @app.route("/api/save", methods=["POST"])
